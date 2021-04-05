@@ -1,0 +1,104 @@
+---
+title: "Vaccine in Indonesia"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(glue)
+library(ggrepel)
+library(ggridges)
+library(ggthemes)
+library(leaflet)
+library(lubridate)
+library(scales)
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(padr)
+library(plotly)
+library(magick)
+library(leaflet)
+library(dplyr)
+library(sp)
+library(mapview)
+library(ggplot2)
+```
+
+```{r}
+countries <- read.csv("Data/average-latitude-longitude-countries.csv")
+countries_clean <- countries %>%
+  drop_na(ISO.3166.Country.Code)
+```
+
+```{r}
+vaccine <- read.csv("Data/country_vaccinations.csv")
+vaccine_clean <- vaccine %>%
+  drop_na(total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, people_vaccinated_per_hundred, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million)
+```
+
+```{r}
+mergecv <- merge.data.frame(countries_clean,vaccine_clean, by.x = "Country", by.y = "country")
+
+country <- mergecv %>% 
+  group_by(Country) %>% 
+  summarise(n_total = n()) %>% 
+  ungroup()
+
+Indonesia <- mergecv %>% 
+  filter(Country == "Indonesia")
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### World Wide Vaccine
+
+```{r}
+map1 <- leaflet(data = )
+map1 <- addTiles(map1)
+
+popup <- paste(mergecv$mergecv,  "<br>", 
+               "ISO Country Code:", mergecv$ISO.3166.Country.Code,
+               "vaccine:", mergecv$total_vaccinations,
+               "people vaccinated:", mergecv$people_vaccinated
+               )
+
+map1 <- addMarkers(map1,
+                   lng = mergecv$Longitude,
+                   lat = mergecv$Latitude,
+                   popup = popup,
+                   clusterOptions = markerClusterOptions()
+                     )
+map1
+```
+
+Row {data-width=350}
+-----------------------------------------------------------------------
+
+### Balance of vaccine in Indonesia
+
+```{r}
+balance <- ggplot(Indonesia) +
+ aes(x = people_fully_vaccinated, y = total_vaccinations) +
+ geom_line(size = 1L, colour = "#0c4c8a") +
+ theme_minimal()
+
+ggplotly(balance)
+```
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### daily vaccinations in Indonesia
+
+```{r}
+daily <- ggplot(Indonesia) +
+ aes(x = date, group = Country, weight = daily_vaccinations_per_million) +
+ geom_bar(fill = "#0c4c8a") +
+ theme_minimal()
+
+ggplotly(daily)
+```
